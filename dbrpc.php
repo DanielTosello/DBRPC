@@ -8,10 +8,8 @@
 	 *	* Drop existing databases if requested by owner
 	 * 	* Return a list of databases owned by the querying user
 	 * 
-	 * 
+	 * This class is intended to be used with a generic php RPC handler and has not yet been fully tested 
   	 **/ 
-
-
 
   class dbrpc() {
 
@@ -36,9 +34,12 @@
  	 **/
 
 
-	private MysqlCheckUserExists($user) {
+	private function MysqlCheckUserExists($user) {
 		$PDO = new PDO($this->dbLocation, $this->creatorName, $this->creatorPass); 	
-		return ($PDO->query("SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = '" . $user . "')"));
+		$result = $PDO->query("SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = '" . $user . "')");
+		if ($result && $result->fetch()[0]) {
+			return true;
+		} return false;
 	
 	}
 
@@ -50,11 +51,13 @@
 	 * 
 	 **/
 
-	private MysqlCheckDatabaseExists($databaseName) {
+	private function MysqlCheckDatabaseExists($databaseName) {
 		$PDO = new PDO($this->dbLocation, $this->creatorName, $this->creatorPass);
-		return ($PDO->query("SELECT EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='" .
+		$result = $PDO->query("SELECT EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='" .
 			$databaseName ."')"));
-
+		if ($result && $result->fetch()[0]) {
+			return true;
+		} return false;
 	}
 
             /**
@@ -67,7 +70,7 @@
              *
              **/
 
-        private checkCredentials($username, $password) {
+        private function checkCredentials($username, $password) {
             //do the obvious things:
             //  if( check against authentication authority ) {
             //      if ( !user exists in db ) {
@@ -79,7 +82,6 @@
             //  }
             //
             $output = false;
-
 
             if ($username == 'username' && $password == 'password') { //obvious placeholder
                 //check if user exists in remote db
@@ -110,7 +112,7 @@
              *
              **/
 
-            function createDatabase($username, $password, $databaseName){
+            public function createDatabase($username, $password, $databaseName){
 
                     //check credentials are valid
 		if ($this->checkCredentials($username, $password)){
@@ -121,9 +123,10 @@
 			$PDO->query("CREATE DATABASE " . $databaseName);
 			//assign ownership to $user
 			$PDO->query("GRANT ALL on " . $databaseName . ".* to " . $username . "@localhost");
+			//TODO: explicitly revoke non-essential rights from $this->dbcreator account
 		}
                     //return success
-		return 1;
+		return true;
             }
 
             /**
@@ -136,7 +139,7 @@
              *
              **/
 
-            function dropDatabase($username, $password, $databaseName) {
+            public function dropDatabase($username, $password, $databaseName) {
 
                     //check credentials are valid
 		if ($this->checkCredentials($username, $password)){
@@ -148,7 +151,7 @@
 			$PDO->query("DROP DATABASE ". $databaseName);
 			}
 		}
-		return 1;
+		return true;
             }
 
 
@@ -164,35 +167,46 @@
              *
              **/
 
-            function grantPermission($username, $password, $databaseName, $user, $permission='select'){
+            public function grantPermission($username, $password, $databaseName, $user, $permission='select'){
 			//TODO: support arrays in $permission
 
                     //check credentials are valid
-
+		throw new Exception ("not yet implemented");
+		if ($this->checkCredentials($username, $password)){
                     //check $permission is one of privilege_name (e.g. 'select', 'insert', 'update', 'delete')
-
-                    //use $username & $password to grant permissions
-                    //  if $username lacks permission return error
-                    //return success
+			if ($permission == "select" || $permission == "insert" || $permission == "update" || $permission == "delete") {
 
 
+	                    //use $username & $password to grant permissions
+				
+        	            //  if $username lacks permission return error
+                	    //return success
+			}
+		}
             }
 
 	   /**
-	    * function: getDatabases
+	    * function: getDatabases - return databases $username has rights to access
             * @param string username
 	    * @param string password
-	    * @return string comma separated list
+	    * @return string that i'll format properly later
 	    *
 	    **/
 
-	    function getDatabases($username, $password) {
+	    public function getDatabases($username, $password) {
 		//check credentials are valid
 		if($this->checkCredentials($username, $password){
-		
+			//check databases user has full control over
+			$PDO = new PDO($this->dbLocation, $username, $password);
+			$result = $PDO->query("Show Databases");
+			if($result) { 
+				$cat_string = "";
+				foreach($result->fetchAll() as $value) { $cat_string .= $value . " "; }
+				return $cat_string;
+				
+			} 
+			return "";
 			
-		 
-		//check databases user has full control over
 		}
 				
 	    }
