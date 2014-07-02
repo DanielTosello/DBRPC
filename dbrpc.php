@@ -1,4 +1,4 @@
-<?
+<?php
 	/**
 	 * Aim: create a table-level generation and permission system which utilizes PAM and built in SQL features for maximum flexibility and security.
 	 * v0.1 Features: 
@@ -11,7 +11,7 @@
 	 * This class is intended to be used with a generic php RPC handler and has not yet been fully tested 
   	 **/ 
 
-  class dbrpc() {
+  class dbrpc {
 
             //TODO: add explicit logging & debugging
             //TODO: export the following params to a config and import it at runtime
@@ -20,10 +20,10 @@
 	 //CREATE, CREATE USER, GRANT OPTION, RELOAD, SHOW DATABASES on *.*
 	 //SELECT on mysql and INFORMATION_SCHEMA
 
-	    $creatorName = "dbcreator";
-            $creatorPass = "dbcreate_pass";
+	    private $creatorName = "dbcreator";
+            private $creatorPass = "dbcreate_pass";
 
-            $dbLocation = "mysql://localhost:3306";
+            private $dbLocation = "mysql://localhost:3306";
 
 	/**
 	 * function:MysqlCheckUserExists
@@ -54,7 +54,7 @@
 	private function MysqlCheckDatabaseExists($databaseName) {
 		$PDO = new PDO($this->dbLocation, $this->creatorName, $this->creatorPass);
 		$result = $PDO->query("SELECT EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='" .
-			$databaseName ."')"));
+			$databaseName ."')");
 		if ($result && $result->fetch()[0]) {
 			return true;
 		} return false;
@@ -83,7 +83,7 @@
             //
             $output = false;
 
-            if ($username == 'username' && $password == 'password') { //obvious placeholder
+            if ($username == $this->creatorName && $password == $this->creatorPass) { //obvious placeholder
                 //check if user exists in remote db
 		if(!$this->MysqlCheckUserExists($username)) {
 	                $PDO = new PDO($this->dbLocation, $this->creatorName, $this->creatorPass);
@@ -117,7 +117,7 @@
                     //check credentials are valid
 		if ($this->checkCredentials($username, $password)){
                  	//if database exists return error
-			if($this->MysqlCheckDatabaseExists($databaseName) { Throw new Exception("The database name '" . $databaseName ."' is already in use."); }
+			if($this->MysqlCheckDatabaseExists($databaseName)) { Throw new Exception("The database name '" . $databaseName ."' is already in use."); }
 			//use creator credentals to create database
 			$PDO = new PDO($this->dbLocation, $this->creatorName, $this->creatorPass);
 			$PDO->query("CREATE DATABASE " . $databaseName);
@@ -149,9 +149,8 @@
 	                //drop database
 			$PDO = new PDO($this->dbLocation, $username, $password);
 			$PDO->query("DROP DATABASE ". $databaseName);
-			}
 		}
-		return true;
+		
             }
 
 
@@ -195,13 +194,16 @@
 
 	    public function getDatabases($username, $password) {
 		//check credentials are valid
-		if($this->checkCredentials($username, $password){
+		if($this->checkCredentials($username, $password)){
 			//check databases user has full control over
 			$PDO = new PDO($this->dbLocation, $username, $password);
 			$result = $PDO->query("Show Databases");
 			if($result) { 
 				$cat_string = "";
-				foreach($result->fetchAll() as $value) { $cat_string .= $value . " "; }
+				foreach($result->fetchAll() as $value) { 
+					//foreach($value as $value) { $cat_string .= $value . " "; } 
+					$cat_string .= $value[0] . "\n";
+				}
 				return $cat_string;
 				
 			} 
@@ -211,7 +213,9 @@
 				
 	    }
 
-    }
+ }
+
+
 
 
 ?>
